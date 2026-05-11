@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi-container-pod
+  namespace: dev
+spec:
+  initContainers:
+    - name: init-container
+      image: busybox:1.35
+      command: ["sh", "-c", "echo 'Initializing...'; sleep 5; echo 'Initialization complete.'"]
+      volumeMounts:
+        - name: nginx-logs
+          mountPath: /var/log/nginx
+          
+  containers:
+    - name: nginx
+      image: nginx:1.23
+      ports:
+        - containerPort: 8083
+      volumeMounts:
+        # mount the shared volume where nginx writes its logs
+        - name: nginx-logs
+          mountPath: /var/log/nginx
+
+    - name: log-sidecar
+      image: busybox:1.35
+      command: ["sh", "-c", "tail -n+1 -F /var/log/nginx/access.log"]
+      volumeMounts:
+        - name: nginx-logs
+          mountPath: /var/log/nginx
+
+  volumes:
+    - name: nginx-logs
+      emptyDir: {}
